@@ -18,9 +18,6 @@ class ForMeasurement:
         # Data splitting step size for chunk processing
         self.STEP_SIZE = 2000
 
-        # AWS S3 bucket credentials
-        self.access_key = "AKIAWYVLPN57Q4K2664J"
-        self.secret_key = "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"
         self.region = "us-east-2"
         self.preprocessed_bucket = "banf-clientpc-preprocessing"
         self.raw_bucket = "banf-clientpc-bucket"
@@ -422,10 +419,9 @@ class ForMeasurement:
         )
 
     def lookupS3Objects(self, file_type: str = "preprocessed") -> list:
-        client = boto3.client(
+        session = boto3.Session(profile_name='default')
+        client = session.client(
             "s3",
-            aws_access_key_id=self.access_key,
-            aws_secret_access_key=self.secret_key,
             region_name=self.region,
         )
 
@@ -447,10 +443,9 @@ class ForMeasurement:
     def importS3Objects(
         self, file_name: list, file_type: str = "preprocessed"
     ) -> pd.DataFrame:
-        client = boto3.client(
+        session = boto3.Session(profile_name='default')
+        client = session.client(
             "s3",
-            aws_access_key_id=self.access_key,
-            aws_secret_access_key=self.secret_key,
             region_name=self.region,
         )
 
