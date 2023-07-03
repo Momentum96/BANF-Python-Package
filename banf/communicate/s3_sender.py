@@ -52,7 +52,7 @@ class S3tool(threading.Thread):
         self.is_running = False
 
     def run(self) -> None:
-        self.client = self.connect(self._ACCESS_KEY, self._SECRET_KEY)
+        self.client = self.connect()
 
         time.sleep(1.0)
 
