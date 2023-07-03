@@ -14,21 +14,21 @@ class S3tool(threading.Thread):
         ignore = ["botocore", "s3transfer", "urllib3"]
         for i in ignore:
             logging.getLogger(i).setLevel(logging.CRITICAL)
-        self._ACCESS_KEY = "AKIAWYVLPN57Q4K2664J"
-        self._SECRET_KEY = "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"
         self.q = Queue()
         self.client = None
         self.is_running = False
 
-    def connect(self, access_key: str, secret_key: str) -> botocore.client.BaseClient:
-        logging.info("S3 Client Connected")
-        return boto3.client(
-            "s3", aws_access_key_id=access_key, aws_secret_access_key=secret_key
-        )
+    def connect(self) -> botocore.client.BaseClient:
+        session = boto3.Session(profile_name='default')
+        try:
+            client = session.client('s3')
+            logging.info("S3 Client Connected.")
+        except Exception as e:
+            logging.info("S3 Client Connection Failed.")
+            
+        return client
 
     def uploadFile(self, file_path: str, bucket_name: str) -> None:
-        file_size = os.stat(file_path).st_size
-
         try:
             self.client.upload_file(
                 file_path,
