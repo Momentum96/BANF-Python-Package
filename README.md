@@ -7,6 +7,10 @@ A package of Python functions used by BANF's data scientists and developers.
 # Installation
 ```bash
 pip install banf
+
+# or
+
+python setup.py install
 ```
 # Usage
 ```python
