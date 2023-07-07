@@ -7,3 +7,9 @@ Remove AWS Credential in Code for use boto3 package.
 
 # v0.0.3
 add install_requires & update keyowrds
+
+# v0.0.4
+Update install_requires to include more than just that version, rather than limiting it to a single version.
+
+# v0.0.5
+Remove packages from install_requirements that are specific to the windows os.
