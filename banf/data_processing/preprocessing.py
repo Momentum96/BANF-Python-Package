@@ -9,7 +9,8 @@ import boto3
 import botocore
 import os
 import io
-
+from banf.etc.bench import logging_time  # method inference time check decorator
+from pprint import pprint
 
 class ForMeasurement:
     def __init__(self):
@@ -143,7 +144,7 @@ class ForMeasurement:
         target.loc[target[col] > 32767, col] -= 65536
         return target
 
-    def _processingTemperatureCelcius(self, target: pd.Series) -> pd.Series:
+    def _processingTemperatureCelsius(self, target: pd.Series) -> pd.Series:
         return target / 10
 
     def _processingTemperatureFahrenheit(self, target: pd.Series) -> pd.Series:
@@ -419,7 +420,7 @@ class ForMeasurement:
         )
 
     def lookupS3Objects(self, file_type: str = "preprocessed") -> list:
-        session = boto3.Session(profile_name='default')
+        session = boto3.Session(profile_name="default")
         client = session.client(
             "s3",
             region_name=self.region,
@@ -439,11 +440,57 @@ class ForMeasurement:
             dir_list.append("/".join(key.split("/")[:-1]))
 
         return sorted(list(set(dir_list))), sorted(key_list)
+    
+    @logging_time
+    def lookup_s3_csv_objects(self, file_type: str = "preprocessed") -> list:
+        session = boto3.Session(profile_name="default")
+        client = session.client(
+            "s3",
+            region_name=self.region,
+        )
+
+        if file_type == "preprocessed":
+            obj_list = client.list_objects(Bucket=self.preprocessed_bucket)
+        else:
+            obj_list = client.list_objects(Bucket=self.raw_bucket)
+
+        content_list = obj_list["Contents"]
+        key_list = [content["Key"] for content in content_list]
+
+        dir_list = []
+
+        for key in key_list:
+            dir_list.append("/".join(key.split("/")[:-1]))
+
+        return sorted(list(set(dir_list))), sorted(key_list)
+    
+    @logging_time
+    def lookup_s3_parquet_objects(self, file_type: str = "preprocessed") -> list:
+        session = boto3.Session(profile_name="default")
+        client = session.client(
+            "s3",
+            region_name=self.region,
+        )
+
+        if file_type == "preprocessed":
+            obj_list = client.list_objects(Bucket="banf-clientpc-preprocessing-parquet")
+        else:
+            obj_list = client.list_objects(Bucket=self.raw_bucket)
+
+        content_list = obj_list["Contents"]
+        key_list = [content["Key"] for content in content_list]
+
+        dir_list = []
+
+        for key in key_list:
+            dir_list.append("/".join(key.split("/")[:-1]))
+
+        return sorted(list(set(dir_list))), sorted(key_list)
 
     def importS3Objects(
         self, file_name: list, file_type: str = "preprocessed"
     ) -> pd.DataFrame:
-        session = boto3.Session(profile_name='default')
+        session = boto3.Session(profile_name="default")
         client = session.client(
             "s3",
             region_name=self.region,
@@ -462,6 +509,54 @@ class ForMeasurement:
 
         return result
 
+    @logging_time
+    def import_s3_csv_object(
+        self, file_name: list, file_type: str = "preprocessed"
+    ) -> pd.DataFrame:
+        session = boto3.Session(profile_name="default")
+        client = session.client(
+            "s3",
+            region_name=self.region,
+        )
+
+        result = []
+        if file_type == "preprocessed":
+            for f in file_name:
+                obj = client.get_object(Bucket=self.preprocessed_bucket, Key=f)
+                result.append(pd.read_csv(io.BytesIO(obj["Body"].read())))
+
+        else:
+            for f in file_name:
+                obj = client.get_object(Bucket=self.raw_bucket, Key=f)
+                result.append(pd.read_csv(io.BytesIO(obj["Body"].read())))
+
+        return result
+
+    @logging_time
+    def import_s3_parquet_object(
+        self, file_name: list, file_type: str = "preprocessed"
+    ) -> pd.DataFrame:
+        session = boto3.Session(profile_name="default")
+        client = session.client(
+            "s3",
+            region_name=self.region,
+        )
+
+        result = []
+        if file_type == "preprocessed":
+            for f in file_name:
+                obj = client.get_object(
+                    Bucket="banf-clientpc-preprocessing-parquet", Key=f
+                )
+                result.append(pd.read_parquet(io.BytesIO(obj["Body"].read())))
+
+        else:
+            for f in file_name:
+                obj = client.get_object(Bucket=self.raw_bucket, Key=f)
+                result.append(pd.read_parquet(io.BytesIO(obj["Body"].read())))
+
+        return result
+
     def _transformiSensorData(self, df: pd.DataFrame) -> pd.DataFrame:
         df = self._processingPlusMinus(df, "Acceleration_Temperature")
         df = self._processingPlusMinus(df, "P_Temperature")
@@ -477,10 +572,10 @@ class ForMeasurement:
         df["P5V_MON"] = self._processingPower(df["P5V_MON"], "5v")
         df["VBAT_MON"] = self._processingPower(df["VBAT_MON"], "vbat")
 
-        df["Acceleration_Temperature"] = self._processingTemperatureCelcius(
+        df["Acceleration_Temperature"] = self._processingTemperatureCelsius(
             df["Acceleration_Temperature"]
         )
-        df["P_Temperature"] = self._processingTemperatureCelcius(df["P_Temperature"])
+        df["P_Temperature"] = self._processingTemperatureCelsius(df["P_Temperature"])
         df["Pressure"] = self._processingPressureBar(df["Pressure"])
 
         return df
@@ -488,7 +583,7 @@ class ForMeasurement:
     def _transformProfilerData(self, df: pd.DataFrame) -> pd.DataFrame:
         df = self._processingPlusMinus(df, "Temperature")
 
-        df["Temperature"] = self._processingTemperatureCelcius(df["Temperature"])
+        df["Temperature"] = self._processingTemperatureCelsius(df["Temperature"])
 
         df["Relative_Humidity"] = self._processingHumidity(df["Relative_Humidity"])
 
@@ -502,4 +597,12 @@ class ForMeasurement:
 
 if __name__ == "__main__":
     fm = ForMeasurement()
-    fm.transformToSendPacket("C:/logs/TP0010_TS0011_1000Hz_230220170949_1.txt")
+    _, csv_file_list = fm.lookup_s3_csv_objects()
+    pprint(csv_file_list[:10])
+    
+    _, parquet_file_list = fm.lookup_s3_parquet_objects()
+    pprint(parquet_file_list[:10])
+
+    fm.import_s3_csv_object(csv_file_list[:10])
+    time.sleep(2)
+    fm.import_s3_parquet_object(parquet_file_list[:10])
