@@ -427,52 +427,6 @@ class ForMeasurement:
         )
 
         if file_type == "preprocessed":
-            obj_list = client.list_objects(Bucket=self.preprocessed_bucket)
-        else:
-            obj_list = client.list_objects(Bucket=self.raw_bucket)
-
-        content_list = obj_list["Contents"]
-        key_list = [content["Key"] for content in content_list]
-
-        dir_list = []
-
-        for key in key_list:
-            dir_list.append("/".join(key.split("/")[:-1]))
-
-        return sorted(list(set(dir_list))), sorted(key_list)
-    
-    @logging_time
-    def lookup_s3_csv_objects(self, file_type: str = "preprocessed") -> list:
-        session = boto3.Session(profile_name="default")
-        client = session.client(
-            "s3",
-            region_name=self.region,
-        )
-
-        if file_type == "preprocessed":
-            obj_list = client.list_objects(Bucket=self.preprocessed_bucket)
-        else:
-            obj_list = client.list_objects(Bucket=self.raw_bucket)
-
-        content_list = obj_list["Contents"]
-        key_list = [content["Key"] for content in content_list]
-
-        dir_list = []
-
-        for key in key_list:
-            dir_list.append("/".join(key.split("/")[:-1]))
-
-        return sorted(list(set(dir_list))), sorted(key_list)
-    
-    @logging_time
-    def lookup_s3_parquet_objects(self, file_type: str = "preprocessed") -> list:
-        session = boto3.Session(profile_name="default")
-        client = session.client(
-            "s3",
-            region_name=self.region,
-        )
-
-        if file_type == "preprocessed":
             obj_list = client.list_objects(Bucket="banf-clientpc-preprocessing-parquet")
         else:
             obj_list = client.list_objects(Bucket=self.raw_bucket)
@@ -488,52 +442,6 @@ class ForMeasurement:
         return sorted(list(set(dir_list))), sorted(key_list)
 
     def importS3Objects(
-        self, file_name: list, file_type: str = "preprocessed"
-    ) -> pd.DataFrame:
-        session = boto3.Session(profile_name="default")
-        client = session.client(
-            "s3",
-            region_name=self.region,
-        )
-
-        result = []
-        if file_type == "preprocessed":
-            for f in file_name:
-                obj = client.get_object(Bucket=self.preprocessed_bucket, Key=f)
-                result.append(pd.read_csv(io.BytesIO(obj["Body"].read())))
-
-        else:
-            for f in file_name:
-                obj = client.get_object(Bucket=self.raw_bucket, Key=f)
-                result.append(pd.read_csv(io.BytesIO(obj["Body"].read())))
-
-        return result
-
-    @logging_time
-    def import_s3_csv_object(
-        self, file_name: list, file_type: str = "preprocessed"
-    ) -> pd.DataFrame:
-        session = boto3.Session(profile_name="default")
-        client = session.client(
-            "s3",
-            region_name=self.region,
-        )
-
-        result = []
-        if file_type == "preprocessed":
-            for f in file_name:
-                obj = client.get_object(Bucket=self.preprocessed_bucket, Key=f)
-                result.append(pd.read_csv(io.BytesIO(obj["Body"].read())))
-
-        else:
-            for f in file_name:
-                obj = client.get_object(Bucket=self.raw_bucket, Key=f)
-                result.append(pd.read_csv(io.BytesIO(obj["Body"].read())))
-
-        return result
-
-    @logging_time
-    def import_s3_parquet_object(
         self, file_name: list, file_type: str = "preprocessed"
     ) -> pd.DataFrame:
         session = boto3.Session(profile_name="default")
