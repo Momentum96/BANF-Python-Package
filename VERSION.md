@@ -13,3 +13,7 @@ Update install_requires to include more than just that version, rather than limi
 
 # v0.0.5
 Remove packages from install_requirements that are specific to the windows os.
+
+# v0.0.6
+Update data_preprocessing/preprocessing.py  
+- change lookupS3Objects, importS3Objects file type from csv to parquet.
